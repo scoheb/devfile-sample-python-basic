@@ -336,4 +336,7 @@ spec:
   - name: registry-auth
     secret:
       secretName: redhat-appstudio-registry-pull-secret
+  - name: git-auth
+    secret:
+      secretName: '{{ git_auth_secret }}'
 status: {}
