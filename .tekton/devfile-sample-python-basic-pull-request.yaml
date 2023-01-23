@@ -18,13 +18,13 @@ metadata:
 spec:
   params:
   - name: dockerfile
-    value: https://raw.githubusercontent.com/scoheb/devfile-sample-python-basic/main/docker/Dockerfile
+    value: docker/Dockerfile
   - name: git-url
     value: '{{repo_url}}'
   - name: output-image
     value: quay.io/redhat-appstudio/user-workload:on-pr-{{revision}}
   - name: path-context
-    value: ./
+    value: .
   - name: revision
     value: '{{revision}}'
   pipelineSpec:
@@ -38,7 +38,7 @@ spec:
       - name: image-url
         value: $(params.output-image)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-summary:0.1@sha256:59d49758686c141bd26b3c193e52fd23bb47831c2a5d5872388ad6824684735e
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-summary:0.1@sha256:245f5017f0a58840212cfd2de0a50844f78b2b2c74976289f34b238bdaa700e5
         name: summary
     params:
     - description: Source Repository URL
@@ -99,7 +99,7 @@ spec:
       - name: pipeline-run-name
         value: $(context.pipelineRun.name)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:757661b8f68595f34b0bf78fe654261d7ac1b08dfca48b54964139db9e38adcf
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:f9e8e66798d02afee87ff13c8d5a0d4bb2667c05a7010fbd286a4afa319c7323
         name: init
     - name: clone-repository
       params:
@@ -110,7 +110,7 @@ spec:
       runAfter:
       - appstudio-init
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-git-clone:0.1@sha256:5e409aeff2f143a0d368dc8c53d1f4d8b9fc5be83f7111a99d0d367487655229
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-git-clone:0.1@sha256:bc80240b360909d98f65e792f8be646de90664766a1f5674735f3ebdd8a3d8bf
         name: git-clone
       when:
       - input: $(tasks.appstudio-init.results.build)
@@ -126,7 +126,7 @@ spec:
       runAfter:
       - clone-repository
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-configure-build:0.1@sha256:003eb89ebe3e51d88b93baaabd8ab66eaf479aad00ad71a9571b12f7b428adc9
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-configure-build:0.1@sha256:787d29329a2ea1b618ddf0ec4cb208d7f3dbc5c969c6e61ea920fb063b09a477
         name: configure-build
       when:
       - input: $(tasks.appstudio-init.results.build)
@@ -136,8 +136,6 @@ spec:
       workspaces:
       - name: source
         workspace: workspace
-      - name: registry-auth
-        workspace: registry-auth
     - name: prefetch-dependencies
       params:
       - name: package-type
@@ -174,7 +172,7 @@ spec:
       runAfter:
       - prefetch-dependencies
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:f648bfa39ede3760adde05996324b21d46a353397e57bfb6946590f04d482386
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-buildah:0.1@sha256:00edff23169c65f04871832f84dd6d37b6949bcd3a8266729cf0b0253726a62d
         name: buildah
       when:
       - input: $(tasks.appstudio-init.results.build)
@@ -256,21 +254,18 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:4f65b7f26953460d26370d66538c0cdc4b978f35093dc3b38af8b496b563a944
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clair-scan:0.1@sha256:ef60d879c4f074d6a0163d95eea758096cb2173e7d17ac99ab358402394999c0
         name: clair-scan
       when:
       - input: $(params.skip-checks)
         operator: in
         values:
         - "false"
-      workspaces:
-      - name: registry-auth
-        workspace: registry-auth
     - name: sast-snyk-check
       runAfter:
       - clone-repository
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:29aa45fef5d67f0be2a89dc954ce8fa406236901d4dfcebfba88338221c4627e
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-sast-snyk-check:0.1@sha256:6686a9f8c89c2be134871cccece868c62bc1187a9d906f063f4c79a8865c98d1
         name: sast-snyk-check
       when:
       - input: $(params.skip-checks)
@@ -289,16 +284,13 @@ spec:
       runAfter:
       - build-container
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:64b52d3e33cdb539f1d3759f432782eaed5c812bea04296f509cfa2d81247c8d
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-clamav-scan:0.1@sha256:191e065fdce26e797b14004de7c770553c17c883f9c80e4761c4c8bfbe3b8b86
         name: clamav-scan
       when:
       - input: $(params.skip-checks)
         operator: in
         values:
         - "false"
-      workspaces:
-      - name: registry-auth
-        workspace: registry-auth
     - name: sbom-json-check
       params:
       - name: IMAGE_URL
@@ -318,8 +310,6 @@ spec:
         workspace: workspace
     workspaces:
     - name: workspace
-    - name: registry-auth
-      optional: true
     - name: git-auth
       optional: true
   workspaces:
@@ -334,9 +324,6 @@ spec:
           requests:
             storage: 1Gi
       status: {}
-  - name: registry-auth
-    secret:
-      secretName: redhat-appstudio-registry-pull-secret
   - name: git-auth
     secret:
       secretName: '{{ git_auth_secret }}'
